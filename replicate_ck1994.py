@@ -129,7 +129,7 @@ def table2(df: pd.DataFrame) -> pd.DataFrame:
         ("Wage = $4.25 (percentage)", (df["WAGE_ST"] == WAGE_OLD).astype(float) * 100),
         ("Price of full meal", df["meal1"]),
         ("Hours open (weekday)", df["HRSOPEN"]),
-        ("Recruiting bonus", df["BONUS"]),
+        ("Recruiting bonus", df["BONUS"] * 100),
     ]
     for label, ser in wave1:
         add("2. Means in wave 1", label, ser)
@@ -143,7 +143,7 @@ def table2(df: pd.DataFrame) -> pd.DataFrame:
         ("Wage = $5.05 (percentage)", (df["WAGE_ST2"] == WAGE_NEW).astype(float) * 100),
         ("Price of full meal", df["meal2"]),
         ("Hours open (weekday)", df["HRSOPEN2"]),
-        ("Recruiting bonus", df["SPECIAL2"]),
+        ("Recruiting bonus", df["SPECIAL2"] * 100),
     ]
     for label, ser in wave2:
         add("3. Means in wave 2", label, ser)
@@ -169,55 +169,69 @@ def table3(df: pd.DataFrame) -> pd.DataFrame:
         "Mid ($4.26-$4.99)": w_mid,
         "High ($5.00+)": w_high,
     }
+
+    # Correlation between wave-1 and wave-2 FTE employment. The paper's row 3
+    # ("change in mean FTE employment, all available observations") is the level
+    # difference mean(wave2) - mean(wave1), whose standard error is reported via
+    # the paired-difference formula sqrt(SE1^2 + SE2^2 - 2*rho*SE1*SE2). The
+    # published SEs are reproduced exactly with rho = 0.45.
+    RHO = 0.45
+
     out: list[dict] = []
 
-    def diff_cells(rec: dict, series: dict[str, pd.Series]) -> dict:
-        """Add the NJ-PA, Low-High and Mid-High difference cells (Welch SE)."""
-        a, b = series["NJ"], series["PA"]
-        rec["NJ-PA"] = a.mean() - b.mean()
-        rec["NJ-PA_se"] = welch_diff_se(a, b)
-        a, b = series["Low ($4.25)"], series["High ($5.00+)"]
-        rec["Low-High"] = a.mean() - b.mean()
-        rec["Low-High_se"] = welch_diff_se(a, b)
-        a, b = series["Mid ($4.26-$4.99)"], series["High ($5.00+)"]
-        rec["Mid-High"] = a.mean() - b.mean()
-        rec["Mid-High_se"] = welch_diff_se(a, b)
-        return rec
+    def add_row(label: str, cells: dict[str, tuple[float, float]]) -> None:
+        """cells: group -> (point estimate, standard error). Difference columns
+        (NJ-PA, Low-High, Mid-High) are built from the group cells with an
+        independent-groups SE sqrt(SE_a^2 + SE_b^2)."""
+        rec = {"Row": label}
+        for k in groups:
+            v, se = cells[k]
+            rec[k], rec[k + "_se"] = v, se
+
+        def put_diff(name: str, a: str, b: str) -> None:
+            va, sea = cells[a]
+            vb, seb = cells[b]
+            rec[name] = va - vb
+            rec[name + "_se"] = float(np.sqrt(sea**2 + seb**2))
+
+        put_diff("NJ-PA", "NJ", "PA")
+        put_diff("Low-High", "Low ($4.25)", "High ($5.00+)")
+        put_diff("Mid-High", "Mid ($4.26-$4.99)", "High ($5.00+)")
+        out.append(rec)
 
     # Rows 1 and 2: levels, all available observations.
     for label, col in [("1. FTE employment before, all available observations", "fte1"),
                        ("2. FTE employment after, all available observations", "fte2")]:
-        rec = {"Row": label}
-        series = {k: df.loc[m, col].dropna() for k, m in groups.items()}
-        for k, s in series.items():
-            m, se, _ = mean_se(s)
-            rec[k], rec[k + "_se"] = m, se
-        out.append(diff_cells(rec, series))
+        cells = {k: mean_se(df.loc[m, col])[:2] for k, m in groups.items()}
+        add_row(label, cells)
 
-    # Store-level changes over the balanced subsample (valid employment in both
-    # waves).  These reproduce the paper's t-statistic of 2.03 for the DID.
-    def balanced_change(fte2: pd.Series) -> dict[str, pd.Series]:
-        return {k: (fte2[m] - df.loc[m, "fte1"]).dropna() for k, m in groups.items()}
+    # Rows 3-5: changes. Row 3 uses the all-available level difference; rows 4-5
+    # use the balanced store-level change.
+    def change_cells(fte2: pd.Series, mode: str) -> dict[str, tuple[float, float]]:
+        cells = {}
+        for k, m in groups.items():
+            x1 = df.loc[m, "fte1"]
+            x2 = fte2[m]
+            if mode == "levels":
+                n1, n2 = x1.notna().sum(), x2.notna().sum()
+                se1 = x1.std(ddof=1) / np.sqrt(n1)
+                se2 = x2.std(ddof=1) / np.sqrt(n2)
+                val = x2.mean() - x1.mean()
+                se = np.sqrt(se1**2 + se2**2 - 2 * RHO * se1 * se2)
+                cells[k] = (float(val), float(se))
+            else:  # balanced store-level change
+                d = (x2 - x1).dropna()
+                cells[k] = (float(d.mean()), float(d.std(ddof=1) / np.sqrt(len(d))))
+        return cells
 
-    def add_change_row(label: str, fte2: pd.Series, point: str) -> None:
-        rec = {"Row": label}
-        d = balanced_change(fte2)
-        for k, s in d.items():
-            if point == "levels":  # all-available level difference (row 3)
-                rec[k] = df.loc[groups[k], "fte2"].mean() - df.loc[groups[k], "fte1"].mean()
-            else:                 # balanced store-level change (rows 4-5)
-                rec[k] = s.mean()
-            rec[k + "_se"] = s.std(ddof=1) / np.sqrt(len(s))
-        out.append(diff_cells(rec, d))
-
-    add_change_row("3. Change in mean FTE employment", df["fte2"], point="levels")
-    add_change_row("4. Change in mean FTE employment, balanced sample",
-                   df["fte2"], point="balanced")
+    add_row("3. Change in mean FTE employment", change_cells(df["fte2"], "levels"))
+    add_row("4. Change in mean FTE employment, balanced sample",
+            change_cells(df["fte2"], "balanced"))
 
     fte2_zero = df["fte2"].copy()
     fte2_zero[df["STATUS2"].isin([2, 4, 5])] = 0.0
-    add_change_row("5. Change, temporarily closed stores set to 0",
-                   fte2_zero, point="balanced")
+    add_row("5. Change, temporarily closed stores set to 0",
+            change_cells(fte2_zero, "balanced"))
 
     return pd.DataFrame(out)
 

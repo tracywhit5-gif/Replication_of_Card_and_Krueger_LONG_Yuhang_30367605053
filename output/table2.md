@@ -11,7 +11,7 @@
 | 2. Means in wave 1             | Wage = $4.25 (percentage)      | 30.51 |    2.53 | 32.91 |    5.32 | -0.41 |
 | 2. Means in wave 1             | Price of full meal             |  3.35 |    0.04 |  3.04 |    0.07 |  3.96 |
 | 2. Means in wave 1             | Hours open (weekday)           | 14.42 |    0.15 | 14.53 |    0.33 | -0.29 |
-| 2. Means in wave 1             | Recruiting bonus               |  0.24 |    0.02 |  0.29 |    0.05 | -0.98 |
+| 2. Means in wave 1             | Recruiting bonus               | 23.56 |    2.34 | 29.11 |    5.14 | -0.98 |
 | 3. Means in wave 2             | FTE employment                 | 21.03 |    0.52 | 21.17 |    0.94 | -0.13 |
 | 3. Means in wave 2             | Percentage full-time employees | 32.01 |    1.41 | 26.02 |    2.77 |  1.93 |
 | 3. Means in wave 2             | Starting wage                  |  5.08 |    0.01 |  4.62 |    0.04 | 10.82 |
@@ -19,4 +19,4 @@
 | 3. Means in wave 2             | Wage = $5.05 (percentage)      | 85.5  |    1.94 |  1.27 |    1.27 | 36.38 |
 | 3. Means in wave 2             | Price of full meal             |  3.41 |    0.04 |  3.03 |    0.07 |  5.08 |
 | 3. Means in wave 2             | Hours open (weekday)           | 14.42 |    0.15 | 14.65 |    0.33 | -0.65 |
-| 3. Means in wave 2             | Recruiting bonus               |  0.2  |    0.02 |  0.23 |    0.05 | -0.57 |
+| 3. Means in wave 2             | Recruiting bonus               | 20.32 |    2.27 | 23.38 |    4.85 | -0.57 |
