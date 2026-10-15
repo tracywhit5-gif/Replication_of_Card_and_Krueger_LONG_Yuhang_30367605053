@@ -252,13 +252,17 @@ def table4(df: pd.DataFrame) -> pd.DataFrame:
         ("(ii)", "dft ~ NJ + C(CHAIN) + CO_OWNED"),
         ("(iii)", "dft ~ gap"),
         ("(iv)", "dft ~ gap + C(CHAIN) + CO_OWNED"),
-        ("(v)", "dft ~ gap + C(CHAIN) + CO_OWNED + CENTRALJ + PA1 + PA2"),
+        # Model (v) adds region dummies: three regions of New Jersey (North,
+        # Central, South -> CENTRALJ + SOUTHJ with North as reference) and two
+        # regions of eastern Pennsylvania (PA1 = northern Philadelphia suburbs,
+        # PA2 = Easton). See paper note c and the body text on p. 781.
+        ("(v)", "dft ~ gap + C(CHAIN) + CO_OWNED + CENTRALJ + SOUTHJ + PA1 + PA2"),
     ]
     controls = {
         "(ii)": "C(CHAIN)[T.2]=0, C(CHAIN)[T.3]=0, C(CHAIN)[T.4]=0, CO_OWNED=0",
         "(iv)": "C(CHAIN)[T.2]=0, C(CHAIN)[T.3]=0, C(CHAIN)[T.4]=0, CO_OWNED=0",
         "(v)": ("C(CHAIN)[T.2]=0, C(CHAIN)[T.3]=0, C(CHAIN)[T.4]=0, CO_OWNED=0, "
-                "CENTRALJ=0, PA1=0, PA2=0"),
+                "CENTRALJ=0, SOUTHJ=0, PA1=0, PA2=0"),
     }
 
     rows = {}
