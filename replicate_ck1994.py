@@ -288,32 +288,68 @@ def table4(df: pd.DataFrame) -> pd.DataFrame:
 # Figure 1 -- Distribution of Starting Wage Rates
 # ---------------------------------------------------------------------------
 def figure1(df: pd.DataFrame) -> str:
+    """Figure 1 -- Distribution of starting wage rates.
+
+    Two vertically stacked panels (February 1992 = wave 1, November 1992 =
+    wave 2). Each panel is a grouped bar chart showing the share of New Jersey
+    and Pennsylvania stores in each $0.10-wide starting-wage group. The x-axis
+    shows each group's midpoint (4.25, 4.35, ..., 5.55) and the y-axis is
+    percent of stores, with panel-specific tick scales matching the paper
+    (February 0-35 by 5; November 0-90 by 10).
+    """
     nj = df["STATE"] == 1
     pa = df["STATE"] == 0
-    bins = np.arange(4.00, 6.51, 0.25)
 
-    fig, axes = plt.subplots(2, 2, figsize=(9, 7), sharex=True, sharey=True)
+    # $0.10-wide wage groups; the x-axis shows each group's midpoint
+    # (4.25, 4.35, ..., 5.55). Integer arithmetic keeps the group edges exactly
+    # equal to the values as parsed from the CSV.
+    midpoints = np.arange(425, 556, 10) / 100.0        # 14 groups
+    labels = [f"${m:.2f}" for m in midpoints]
+    upper_edges = np.arange(430, 561, 10) / 100.0      # 4.30, 4.40, ..., 5.60
+
+    def pct_by_range(wages: pd.Series, mask: pd.Series) -> np.ndarray:
+        vals = wages[mask].dropna()
+        n = len(vals)
+        if n == 0:
+            return np.zeros(len(midpoints))
+        # right=False -> bin k covers [upper_edges[k-1], upper_edges[k]); wages
+        # at or above the top edge are top-coded into the last group.
+        idx = np.minimum(np.digitize(vals, upper_edges, right=False),
+                         len(midpoints) - 1)
+        counts = np.bincount(idx, minlength=len(midpoints))
+        return counts / n * 100
+
     panels = [
-        ("New Jersey", "February 1992", df.loc[nj, "WAGE_ST"], axes[0, 0]),
-        ("New Jersey", "November 1992", df.loc[nj, "WAGE_ST2"], axes[0, 1]),
-        ("Pennsylvania", "February 1992", df.loc[pa, "WAGE_ST"], axes[1, 0]),
-        ("Pennsylvania", "November 1992", df.loc[pa, "WAGE_ST2"], axes[1, 1]),
+        ("February 1992", "WAGE_ST", [0, 5, 10, 15, 20, 25, 30, 35]),
+        ("November 1992", "WAGE_ST2", [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]),
     ]
-    for state, period, ser, ax in panels:
-        ax.hist(ser.dropna(), bins=bins, color="0.62", edgecolor="black", linewidth=0.6)
-        ax.axvline(WAGE_OLD, color="black", linestyle="--", linewidth=0.9)
-        ax.axvline(WAGE_NEW, color="black", linestyle="--", linewidth=0.9)
-        ax.set_title(f"{state} -- {period}", fontsize=10)
-        ax.set_ylabel("Number of stores")
 
-    for ax in axes[1, :]:
-        ax.set_xlabel("Starting wage (dollars per hour)")
+    fig, axes = plt.subplots(2, 1, figsize=(7.5, 8), sharex=True)
+    x = np.arange(len(midpoints))
+    width = 0.38
+
+    for ax, (title, col, yticks) in zip(axes, panels):
+        ax.bar(x - width / 2, pct_by_range(df[col], nj), width,
+               label="New Jersey", color="0.30", edgecolor="black", linewidth=0.6)
+        ax.bar(x + width / 2, pct_by_range(df[col], pa), width,
+               label="Pennsylvania", color="white", edgecolor="black",
+               linewidth=0.6, hatch="///")
+        ax.set_title(title, fontsize=11)
+        ax.set_ylabel("Percent of stores")
+        ax.set_yticks(yticks)
+        ax.set_xticks(x)
+
+    axes[0].set_xticklabels([])
+    axes[1].set_xticklabels(labels, rotation=45, ha="right", fontsize=7)
+    axes[1].set_xlabel("Wage range")
+    axes[0].legend(loc="upper right", fontsize=9, frameon=False)
+
     fig.suptitle("FIGURE 1. Distribution of Starting Wage Rates",
                  fontsize=12, y=0.99)
     fig.tight_layout(rect=(0, 0, 1, 0.97))
 
-    path = os.path.join(OUT, "figure1.png")
-    fig.savefig(path, dpi=150)
+    path = os.path.join(OUT, "figure1_updated.png")
+    fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return path
 
