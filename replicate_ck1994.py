@@ -375,17 +375,17 @@ def main() -> None:
     df = load_data()
 
     t2 = table2(df)
-    write_table(t2, "table2")
+    write_table(t2, "table2_updated")
     print("\n=== Table 2 ===")
     print(t2.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
 
     t3 = table3(df)
-    write_table(t3, "table3")
+    write_table(t3, "table3_updated")
     print("\n=== Table 3 ===")
     print(t3.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
 
     t4, _s = table4(df)
-    write_table(t4, "table4")
+    write_table(t4, "table4_updated")
     print("\n=== Table 4 ===")
     print(t4.to_string(float_format=lambda x: f"{x:.3f}"))
 
