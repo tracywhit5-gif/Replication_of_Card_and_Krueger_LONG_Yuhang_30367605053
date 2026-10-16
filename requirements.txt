@@ -1,0 +1,10 @@
+# Card & Krueger (1994) replication — Python dependencies (Python 3.13)
+# Pin numpy==2.2.6 and scipy==1.15.2 exactly: newer numpy breaks with DLL errors
+# on Windows (this is a known issue on this machine, not a code problem).
+numpy==2.2.6
+scipy==1.15.2
+pandas==3.0.5
+statsmodels==0.15.0
+matplotlib==3.11.2
+python-docx==1.2.0
+tabulate==0.10.0
