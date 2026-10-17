@@ -36,7 +36,7 @@ absorb a higher minimum wage.
 │   ├── table4_updated.csv / .md
 │   ├── figure1_updated.png
 │   └── three_line_tables/         #   table2/3/4_three_line.png + .docx
-├── Empirical_Report.docx          # the written report (final deliverable)
+├── Empirical_Report_LONG_Yuhang.docx  # the written report (final deliverable, .docx + .pdf)
 ├── REPLICATION.md                 # replication notes and result comparison (中文)
 ├── 修改记录与差异说明.md             # fix log + data-version disclosure (中文)
 ├── requirements.txt               # pinned Python dependencies
